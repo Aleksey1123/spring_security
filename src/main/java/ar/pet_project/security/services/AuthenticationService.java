@@ -1,9 +1,6 @@
 package ar.pet_project.security.services;
 
-import ar.pet_project.security.models.AppUser;
-import ar.pet_project.security.models.RegistrationDTO;
-import ar.pet_project.security.models.LoginResponseDTO;
-import ar.pet_project.security.models.Role;
+import ar.pet_project.security.models.*;
 import ar.pet_project.security.repositories.RoleRepository;
 import ar.pet_project.security.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,34 +27,39 @@ public class AuthenticationService {
     private final TokenService tokenService;
 
 
-     public AppUser registerUser(RegistrationDTO user) {
-         System.out.println("In authService");
-
+     public Boolean registerUser(RegistrationDTO user) {
 //         String encodedPassword = passwordEncoder.encode(user.getPassword());
-         Role userRole = roleRepository.findByAuthority("USER").get();
+         try {
+             Role userRole = roleRepository.findByAuthority("USER").get();
 
-         Set<Role> authorities = new HashSet<>();
-         authorities.add(userRole);
+             Set<Role> authorities = new HashSet<>();
+             authorities.add(userRole);
 
 //         return userRepository.save(new AppUser(user.getUsername(), encodedPassword, authorities));
 
-         return userRepository.save(AppUser.builder()
-                 .username(user.getUsername())
-                 .password(passwordEncoder.encode(user.getPassword()))
-                 .authorities(authorities)
-                 .build());
+             userRepository.save(AppUser.builder()
+                     .username(user.getUsername())
+                     .password(passwordEncoder.encode(user.getPassword()))
+                     .authorities(authorities)
+                     .build());
+             return true;
+         }
+         catch (Exception exception) {
+             return false;
+         }
+
      }
 
-     public LoginResponseDTO loginUser(String username, String password) {
+     public LoginResponseDTO loginUser(LoginDTO user) {
 
          try {
              Authentication authentication = authenticationManager.authenticate(
-                     new UsernamePasswordAuthenticationToken(username, password)
+                     new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword())
              );
 
              String token = tokenService.generateJwt(authentication);
 
-             return new LoginResponseDTO(userRepository.findByUsername(username).get(), token);
+             return new LoginResponseDTO(userRepository.findByUsername(user.getEmail()).get(), token);
          }
          catch (AuthenticationException exception) {
              return new LoginResponseDTO(null, "");
